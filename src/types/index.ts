@@ -43,6 +43,8 @@ export interface UserProfile {
   passcodeEnabled: boolean;
   passcodeHash?: string;
   kycLevel: 'Basic' | 'Verified' | 'Pro';
+  email?: string;
+  phone?: string;
   refLink: string;
   refCount: number;
   totalRefEarningsUSDT: number;

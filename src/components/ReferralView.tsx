@@ -1,134 +1,151 @@
 import React, { useState } from 'react';
+import { ChevronLeft, Link2, QrCode, Users, Check } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
-import { Copy, Share2, Check, Award, Gift } from 'lucide-react';
 
-export const ReferralView: React.FC = () => {
-  const { user, referrals, showToast, triggerHaptic } = useWallet();
-  const [copied, setCopied] = useState<boolean>(false);
+interface ReferralViewProps {
+  onBack: () => void;
+}
+
+export const ReferralView: React.FC<ReferralViewProps> = ({ onBack }) => {
+  const { user, triggerHaptic, showToast } = useWallet();
+  const [copied, setCopied] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  const referralLink = `https://t.me/onepay_wallet_bot?start=ref_${user.id || '101'}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(referralLink)}`;
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(user.refLink);
+    navigator.clipboard.writeText(referralLink);
     setCopied(true);
     triggerHaptic('success');
     showToast('Реферальная ссылка скопирована!', 'success');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleShareTelegram = () => {
-    triggerHaptic('medium');
-    const shareText = `Присоединяйся к One Pay Wallet! Получай кэшбэк и удобные крипто-переводы прямо в Telegram:`;
-    const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(user.refLink)}&text=${encodeURIComponent(shareText)}`;
-    
-    const tg = window.Telegram?.WebApp;
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(tgUrl);
-    } else {
-      window.open(tgUrl, '_blank');
-    }
+    setTimeout(() => setCopied(false), 2500);
   };
 
   return (
-    <div className="space-y-4 pb-24 pt-2 animate-fade-in">
-      {/* Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-cyan-950 p-5 border border-indigo-500/30 shadow-glow">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-            <Gift className="w-6 h-6 stroke-[2.5]" />
+    <div className="min-h-screen bg-[#070b14] text-white p-4 flex flex-col justify-between font-sans animate-fadeIn">
+      <div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4 pt-2">
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              onBack();
+            }}
+            className="p-2 bg-slate-900 border border-slate-800 rounded-full text-slate-300 hover:text-white"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-lg font-bold tracking-wide">Рефералы</h1>
+          <div className="w-10" />
+        </div>
+
+        {/* Orbit Graphic Banner with Mascot in Center */}
+        <div className="relative flex justify-center items-center py-8 my-2">
+          {/* Orbit Rings */}
+          <div className="absolute w-64 h-64 border border-blue-500/20 rounded-full animate-spin-slow" />
+          <div className="absolute w-44 h-44 border border-cyan-400/30 rounded-full" />
+
+          {/* Central Elephant Mascot Avatar */}
+          <div className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 p-1 shadow-2xl shadow-cyan-500/40">
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+              alt="Mascot"
+              className="w-full h-full object-cover rounded-full"
+            />
           </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-100">Партнерская Программа</h2>
-            <p className="text-xs text-indigo-300">Зарабатывайте до 25% от комиссий рефералов</p>
+
+          {/* Small Orbiting Avatars */}
+          <div className="absolute top-4 right-16 w-8 h-8 rounded-full border-2 border-cyan-400 bg-slate-800 overflow-hidden shadow-md">
+            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop" alt="ref1" className="w-full h-full object-cover" />
+          </div>
+          <div className="absolute bottom-6 left-14 w-8 h-8 rounded-full border-2 border-blue-400 bg-slate-800 overflow-hidden shadow-md">
+            <img src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop" alt="ref2" className="w-full h-full object-cover" />
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-indigo-900/60 font-mono">
-          <div className="bg-slate-900/80 p-2.5 rounded-xl text-center border border-indigo-900/40">
-            <div className="text-[10px] text-slate-400 font-sans">Приглашено</div>
-            <div className="text-base font-bold text-cyan-400">{user.refCount} чел.</div>
-          </div>
-          <div className="bg-slate-900/80 p-2.5 rounded-xl text-center border border-indigo-900/40">
-            <div className="text-[10px] text-slate-400 font-sans">Доход USDT</div>
-            <div className="text-base font-bold text-emerald-400">${user.totalRefEarningsUSDT.toFixed(2)}</div>
-          </div>
-          <div className="bg-slate-900/80 p-2.5 rounded-xl text-center border border-indigo-900/40">
-            <div className="text-[10px] text-slate-400 font-sans">Ваш Уровень</div>
-            <div className="text-base font-bold text-amber-400">VIP Tier 1</div>
-          </div>
+        {/* Title & Commission Description */}
+        <div className="text-center px-4 mb-6">
+          <h2 className="text-xl font-extrabold text-white mb-2 leading-tight">
+            Приглашайте друзей <br /> в One Pay Wallet
+          </h2>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            и получайте до <span className="text-cyan-400 font-semibold">30% от комиссии сервиса</span> за каждую их оплату по QR-коду
+          </p>
         </div>
-      </div>
 
-      {/* Ref Link Box */}
-      <div className="space-y-2">
-        <label className="block text-xs font-semibold text-slate-300">Ваша реферальная ссылка:</label>
-        <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-slate-900 border border-slate-800 font-mono text-xs text-slate-200">
-          <span className="truncate flex-1">{user.refLink}</span>
+        {/* Link & QR Code Action Buttons */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <button
             onClick={handleCopyLink}
-            className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors flex items-center gap-1 font-sans text-xs font-semibold"
+            className="flex items-center gap-3 p-4 bg-[#121929] border border-slate-800/80 rounded-2xl text-left hover:bg-slate-800/40 transition-colors"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copied ? 'Скопировано' : 'Копия'}</span>
+            <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400 shrink-0">
+              <Link2 className="w-5 h-5" />
+            </div>
+            <div className="overflow-hidden">
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-bold text-white">Ссылка</span>
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : null}
+              </div>
+              <span className="block text-[11px] text-slate-400 truncate">
+                Ваша персональная ссылка
+              </span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setShowQrModal(true);
+            }}
+            className="flex items-center gap-3 p-4 bg-[#121929] border border-slate-800/80 rounded-2xl text-left hover:bg-slate-800/40 transition-colors"
+          >
+            <div className="p-2.5 bg-cyan-500/10 rounded-xl text-cyan-400 shrink-0">
+              <QrCode className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-sm font-bold text-white">QR-код</span>
+              <span className="block text-[11px] text-slate-400">
+                Быстрое приглашение
+              </span>
+            </div>
           </button>
         </div>
 
-        <button
-          onClick={handleShareTelegram}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white hover:from-blue-500 hover:to-indigo-500 transition-all shadow-glow text-xs flex items-center justify-center gap-2"
-        >
-          <Share2 className="w-4 h-4" />
-          <span>Поделиться в Telegram</span>
-        </button>
-      </div>
-
-      {/* Tier Rates Info */}
-      <div className="p-4 rounded-2xl glass-card border border-slate-800 space-y-2">
-        <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-          <Award className="w-4 h-4 text-amber-400" /> Ставки Вознаграждений:
-        </h3>
-        <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-slate-400 block text-[10px] font-sans">1-й Уровень (Прямые)</span>
-            <span className="text-emerald-400 font-bold text-sm">20% комиссии</span>
-          </div>
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-slate-400 block text-[10px] font-sans">2-й Уровень (Суб-рефералы)</span>
-            <span className="text-cyan-400 font-bold text-sm">5% комиссии</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Invited Friends List */}
-      <div>
-        <div className="flex items-center justify-between mb-3 px-1">
-          <h3 className="text-sm font-bold text-slate-200">Приглашенные Друзья</h3>
-          <span className="text-xs text-slate-400 font-mono">{referrals.length} пользователей</span>
-        </div>
-
-        <div className="space-y-2">
-          {referrals.map((ref) => (
-            <div
-              key={ref.id}
-              className="flex items-center justify-between p-3 rounded-2xl glass-card border border-slate-800 text-xs"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-cyan-400">
-                  {ref.username.charAt(1).toUpperCase()}
-                </div>
-                <div>
-                  <div className="font-bold text-slate-100">{ref.username}</div>
-                  <div className="text-[10px] text-slate-400">Регистрация: {ref.joinedAt}</div>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <div className="font-mono font-bold text-emerald-400">+${ref.earnedUSDT.toFixed(2)} USDT</div>
-                <div className="text-[10px] text-slate-400">Tier {ref.tier}</div>
-              </div>
+        {/* Statistics Section */}
+        <div>
+          <span className="block text-xs font-bold text-slate-400 tracking-wider uppercase px-1 mb-2">
+            Статистика
+          </span>
+          <div className="bg-[#121929] border border-slate-800/80 rounded-2xl p-6 text-center">
+            <div className="flex justify-center mb-2">
+              <Users className="w-8 h-8 text-slate-500" />
             </div>
-          ))}
+            <p className="text-sm font-medium text-slate-400">
+              У вас пока нет рефералов 👥
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* QR Modal */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl text-center max-w-xs w-full">
+            <h3 className="text-lg font-bold text-white mb-4">Ваш Реферальный QR</h3>
+            <div className="bg-white p-3 rounded-2xl inline-block mb-4">
+              <img src={qrCodeUrl} alt="Referral QR" className="w-48 h-48" />
+            </div>
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="w-full py-2.5 bg-slate-800 text-slate-200 text-sm font-semibold rounded-xl"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
