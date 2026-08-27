@@ -19,10 +19,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAccount }) => {
         className="flex items-center gap-3 text-left group hover:opacity-90 transition-opacity"
       >
         <div className="relative">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 p-[2px] shadow-glow">
-            <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-cyan-400 font-bold text-base">
-              {user.username ? user.username.charAt(1).toUpperCase() : <User className="w-5 h-5 text-cyan-400" />}
-            </div>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 p-[2px] shadow-glow overflow-hidden">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-full" />
+            ) : (
+              <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-cyan-400 font-bold text-base">
+                {user.username ? user.username.charAt(1).toUpperCase() : <User className="w-5 h-5 text-cyan-400" />}
+              </div>
+            )}
           </div>
           <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
             <ShieldCheck className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />

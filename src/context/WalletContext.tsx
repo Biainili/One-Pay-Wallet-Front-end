@@ -27,6 +27,7 @@ interface WalletContextType {
   handleSwap: (fromAssetSymbol: string, toAssetSymbol: string, fromAmount: number, toAmount: number) => boolean;
   handleDeposit: (assetSymbol: string, amount: number) => void;
   updateUserPasscode: (passcode: string | null) => void;
+  updateUserEmail: (email: string) => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -41,8 +42,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>(initialAssets[0]);
   const [toasts, setToasts] = useState<ToastInfo[]>([]);
 
-  // Synchronize Telegram WebApp user if available
+  // Synchronize Telegram WebApp user if available & restore saved email
   useEffect(() => {
+    const savedEmail = localStorage.getItem('onepay_user_email');
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
@@ -54,8 +56,14 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           id: tgUser.id,
           firstName: tgUser.first_name || prev.firstName,
           username: tgUser.username ? `@${tgUser.username}` : prev.username,
+          avatarUrl: (tgUser as any).photo_url || prev.avatarUrl,
+          email: savedEmail || prev.email,
         }));
+      } else if (savedEmail) {
+        setUser((prev) => ({ ...prev, email: savedEmail }));
       }
+    } else if (savedEmail) {
+      setUser((prev) => ({ ...prev, email: savedEmail }));
     }
   }, []);
 
@@ -189,6 +197,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast(passcode ? 'PIN-код успешно установлен!' : 'PIN-код отключен', 'info');
   };
 
+  const updateUserEmail = (email: string) => {
+    localStorage.setItem('onepay_user_email', email);
+    setUser((prev) => ({ ...prev, email }));
+    showToast('E-mail успешно сохранен!', 'success');
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -210,6 +224,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         handleSwap,
         handleDeposit,
         updateUserPasscode,
+        updateUserEmail,
       }}
     >
       {children}

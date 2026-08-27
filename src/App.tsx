@@ -18,11 +18,21 @@ import { EmailOnboardingModal } from './components/EmailOnboardingModal';
 import { GiftFloatingButton } from './components/GiftFloatingButton';
 
 const AppContent: React.FC = () => {
-  const { activeTab, setActiveTab } = useWallet();
+  const { activeTab, setActiveTab, user, updateUserEmail } = useWallet();
   const [currentView, setCurrentView] = useState<'main' | 'account'>('main');
-  const [showEmailModal, setShowEmailModal] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
-  const handleEmailSubmit = (_email: string) => {
+  React.useEffect(() => {
+    const hasEmail = localStorage.getItem('onepay_user_email') || user.email;
+    if (!hasEmail) {
+      setShowEmailModal(true);
+    } else {
+      setShowEmailModal(false);
+    }
+  }, [user.email]);
+
+  const handleEmailSubmit = (email: string) => {
+    updateUserEmail(email);
     setShowEmailModal(false);
   };
 

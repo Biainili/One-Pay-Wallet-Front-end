@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Phone, Plus, LogOut, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronLeft, Phone, Plus, LogOut, ChevronRight, Trash2, Mail } from 'lucide-react';
 import { useWallet } from '../context/WalletContext';
 
 interface AccountSettingsViewProps {
@@ -9,7 +9,7 @@ interface AccountSettingsViewProps {
 export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ onBack }) => {
   const { user, triggerHaptic, showToast } = useWallet();
   const [phoneList, setPhoneList] = useState<string[]>(
-    user.phone ? [user.phone] : ['+7 (999) 000-00-00']
+    user.phone ? [user.phone] : []
   );
   const [showAddPhone, setShowAddPhone] = useState(false);
   const [newPhone, setNewPhone] = useState('');
@@ -49,12 +49,25 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ onBack
           <div className="w-10" />
         </div>
 
-        {/* User Card */}
-        <div className="bg-[#121929] border border-slate-800/80 rounded-2xl p-4 mb-5">
+        {/* User Username Card */}
+        <div className="bg-[#121929] border border-slate-800/80 rounded-2xl p-4 mb-4">
           <span className="block text-xs font-medium text-slate-400 mb-1">Имя пользователя</span>
           <span className="text-base font-semibold text-white tracking-wide">
             {user.username || '@username'}
           </span>
+        </div>
+
+        {/* Email Card */}
+        <div className="bg-[#121929] border border-slate-800/80 rounded-2xl p-4 mb-5 flex items-center justify-between">
+          <div>
+            <span className="block text-xs font-medium text-slate-400 mb-1">E-mail адрес</span>
+            <span className="text-sm font-semibold text-white">
+              {user.email || 'Не привязан'}
+            </span>
+          </div>
+          <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400">
+            <Mail className="w-5 h-5" />
+          </div>
         </div>
 
         {/* Phone Numbers Section */}
@@ -66,21 +79,27 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ onBack
           </div>
 
           <div className="bg-[#121929] border border-slate-800/80 rounded-2xl overflow-hidden divide-y divide-slate-800/50">
-            {phoneList.map((phone, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
-                    <Phone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-white">{phone}</span>
-                    <span className="block text-[11px] text-slate-400">
-                      {idx === 0 ? 'Основной' : 'Дополнительный'}
-                    </span>
+            {phoneList.length === 0 ? (
+              <div className="p-4 text-xs text-slate-400 italic">
+                Нет добавленных номеров телефонов
+              </div>
+            ) : (
+              phoneList.map((phone, idx) => (
+                <div key={idx} className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-white">{phone}</span>
+                      <span className="block text-[11px] text-slate-400">
+                        {idx === 0 ? 'Основной' : 'Дополнительный'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
 
             <button
               onClick={() => setShowAddPhone(!showAddPhone)}
