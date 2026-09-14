@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useWallet } from '../context/WalletContext';
-import { Lock, Delete, X } from 'lucide-react';
+import { Lock, Delete, X, ShieldCheck } from 'lucide-react';
 
 export const PasscodeModal: React.FC = () => {
-  const { activeModal, setActiveModal, user, updateUserPasscode, triggerHaptic } = useWallet();
+  const { activeModal, setActiveModal, user, updateUserPasscode, triggerHaptic, isPasscodeLocked, unlockPasscode } = useWallet();
   const [pin, setPin] = useState<string>('');
+  const [errorAnim, setErrorAnim] = useState<boolean>(false);
 
-  if (activeModal !== 'passcode') return null;
+  // If app is locked on launch or activeModal is 'passcode'
+  const isLockedMode = isPasscodeLocked;
+  const isOpen = isLockedMode || activeModal === 'passcode';
+
+  if (!isOpen) return null;
 
   const handleKeyPress = (num: string) => {
     if (pin.length < 4) {
@@ -15,12 +20,23 @@ export const PasscodeModal: React.FC = () => {
       setPin(newPin);
 
       if (newPin.length === 4) {
-        triggerHaptic('success');
         setTimeout(() => {
-          updateUserPasscode(newPin);
-          setPin('');
-          setActiveModal('none');
-        }, 200);
+          if (isLockedMode) {
+            const success = unlockPasscode(newPin);
+            if (!success) {
+              setErrorAnim(true);
+              setTimeout(() => {
+                setPin('');
+                setErrorAnim(false);
+              }, 400);
+            }
+          } else {
+            triggerHaptic('success');
+            updateUserPasscode(newPin);
+            setPin('');
+            setActiveModal('none');
+          }
+        }, 150);
       }
     }
   };
@@ -38,39 +54,44 @@ export const PasscodeModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg animate-fade-in">
-      <div className="w-full max-w-xs glass-panel rounded-3xl border border-slate-700/80 p-6 space-y-6 text-center">
-        <div className="flex justify-end">
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              setPin('');
-              setActiveModal('none');
-            }}
-            className="p-1 rounded-xl text-slate-400 hover:text-slate-200"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-fade-in">
+      <div className={`w-full max-w-xs glass-panel rounded-3xl border border-slate-700/80 p-6 space-y-6 text-center shadow-2xl transition-transform ${errorAnim ? 'animate-bounce' : ''}`}>
+        
+        {!isLockedMode && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setPin('');
+                setActiveModal('none');
+              }}
+              className="p-1 rounded-xl text-slate-400 hover:text-slate-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         <div className="space-y-2">
-          <div className="w-14 h-14 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center mx-auto shadow-glow">
-            <Lock className="w-7 h-7" />
+          <div className="w-16 h-16 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center mx-auto shadow-glow">
+            {isLockedMode ? <ShieldCheck className="w-8 h-8 text-cyan-400" /> : <Lock className="w-8 h-8" />}
           </div>
-          <h2 className="text-lg font-bold text-slate-100">
-            {user.passcodeEnabled ? 'Введение PIN-кода' : 'Установите PIN-код'}
+          <h2 className="text-xl font-extrabold text-slate-100 font-sans tracking-tight">
+            {isLockedMode ? 'Вход в One Pay Wallet' : user.passcodeEnabled ? 'Изменение PIN-кода' : 'Установите PIN-код'}
           </h2>
-          <p className="text-xs text-slate-400">Введите 4 цифры для защиты вашего кошелька</p>
+          <p className="text-xs text-slate-400 font-medium">
+            {isLockedMode ? 'Введите 4-значный PIN-код для разблокировки' : 'Введите 4 цифры для защиты вашего кошелька'}
+          </p>
         </div>
 
         {/* PIN Indicators */}
-        <div className="flex justify-center items-center gap-3 py-2">
+        <div className="flex justify-center items-center gap-4 py-2">
           {[0, 1, 2, 3].map((index) => (
             <div
               key={index}
               className={`w-4 h-4 rounded-full border transition-all duration-200 ${
                 pin.length > index
-                  ? 'bg-cyan-400 border-cyan-400 scale-110 shadow-glowBlue'
+                  ? 'bg-cyan-400 border-cyan-400 scale-125 shadow-glowBlue'
                   : 'bg-slate-800 border-slate-700'
               }`}
             />
@@ -83,16 +104,16 @@ export const PasscodeModal: React.FC = () => {
             <button
               key={num}
               onClick={() => handleKeyPress(num)}
-              className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-slate-100 font-bold text-xl hover:bg-slate-800 active:scale-95 transition-all mx-auto flex items-center justify-center font-mono"
+              className="w-14 h-14 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-100 font-extrabold text-xl hover:bg-slate-800 active:scale-95 transition-all mx-auto flex items-center justify-center font-mono shadow-md"
             >
               {num}
             </button>
           ))}
 
-          {user.passcodeEnabled ? (
+          {!isLockedMode && user.passcodeEnabled ? (
             <button
               onClick={handleDisablePasscode}
-              className="col-span-1 text-[10px] text-red-400 font-bold hover:underline self-center"
+              className="col-span-1 text-[11px] text-red-400 font-semibold hover:underline self-center"
             >
               Сброс
             </button>
@@ -102,7 +123,7 @@ export const PasscodeModal: React.FC = () => {
 
           <button
             onClick={() => handleKeyPress('0')}
-            className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-slate-100 font-bold text-xl hover:bg-slate-800 active:scale-95 transition-all mx-auto flex items-center justify-center font-mono"
+            className="w-14 h-14 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-100 font-extrabold text-xl hover:bg-slate-800 active:scale-95 transition-all mx-auto flex items-center justify-center font-mono shadow-md"
           >
             0
           </button>

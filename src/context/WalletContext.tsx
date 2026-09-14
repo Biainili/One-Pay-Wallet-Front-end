@@ -28,6 +28,8 @@ interface WalletContextType {
   handleDeposit: (assetSymbol: string, amount: number) => void;
   updateUserPasscode: (passcode: string | null) => void;
   updateUserEmail: (email: string) => void;
+  isPasscodeLocked: boolean;
+  unlockPasscode: (pin: string) => boolean;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -35,20 +37,64 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTabState] = useState<TabType>('home');
   const [activeModal, setActiveModal] = useState<ActiveModal>('none');
-  const [assets, setAssets] = useState<CryptoAsset[]>(initialAssets);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  
+  // Persistent Assets & Transactions in LocalStorage + DB
+  const [assets, setAssets] = useState<CryptoAsset[]>(() => {
+    const saved = localStorage.getItem('onepay_user_assets');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return initialAssets;
+  });
+
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const saved = localStorage.getItem('onepay_user_transactions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return initialTransactions;
+  });
+
   const [referrals] = useState<ReferralUser[]>(initialReferrals);
-  const [user, setUser] = useState<UserProfile>(defaultUserProfile);
-  const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>(initialAssets[0]);
+  
+  const [user, setUser] = useState<UserProfile>(() => {
+    const savedPin = localStorage.getItem('onepay_user_passcode');
+    const savedEmail = localStorage.getItem('onepay_user_email');
+    return {
+      ...defaultUserProfile,
+      email: savedEmail || defaultUserProfile.email,
+      passcodeEnabled: !!savedPin,
+      passcodeHash: savedPin || undefined,
+    };
+  });
+
+  const [isPasscodeLocked, setIsPasscodeLocked] = useState<boolean>(() => {
+    const savedPin = localStorage.getItem('onepay_user_passcode');
+    return !!savedPin;
+  });
+
+  const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>(assets[0] || initialAssets[0]);
   const [toasts, setToasts] = useState<ToastInfo[]>([]);
 
-  // Synchronize Telegram WebApp user if available & restore saved email
+  // Synchronize Telegram WebApp user if available & restore saved email/passcode
   useEffect(() => {
     const savedEmail = localStorage.getItem('onepay_user_email');
+    const savedPin = localStorage.getItem('onepay_user_passcode');
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
       tg.expand();
+      if (typeof (tg as any).disableVerticalSwipes === 'function') (tg as any).disableVerticalSwipes();
+      if (typeof (tg as any).enableClosingConfirmation === 'function') (tg as any).enableClosingConfirmation();
+      if (typeof (tg as any).setHeaderColor === 'function') (tg as any).setHeaderColor('#0b1120');
+      if (typeof (tg as any).setBackgroundColor === 'function') (tg as any).setBackgroundColor('#0b1120');
+
       const tgUser = tg.initDataUnsafe?.user;
       if (tgUser) {
         setUser((prev) => ({
@@ -58,12 +104,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           username: tgUser.username ? `@${tgUser.username}` : prev.username,
           avatarUrl: (tgUser as any).photo_url || prev.avatarUrl,
           email: savedEmail || prev.email,
+          passcodeEnabled: !!savedPin,
+          passcodeHash: savedPin || undefined,
         }));
-      } else if (savedEmail) {
-        setUser((prev) => ({ ...prev, email: savedEmail }));
       }
-    } else if (savedEmail) {
-      setUser((prev) => ({ ...prev, email: savedEmail }));
+    }
+
+    if (!savedPin) {
+      setTimeout(() => {
+        showToast('🔒 Рекомендуем установить PIN-код для защиты аккаунта', 'info');
+      }, 1500);
     }
   }, []);
 
@@ -96,6 +146,17 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return sum + asset.balance * asset.fiatPrice;
   }, 0);
 
+  // Sync state to LocalStorage and API
+  const saveAssets = (newAssets: CryptoAsset[]) => {
+    setAssets(newAssets);
+    localStorage.setItem('onepay_user_assets', JSON.stringify(newAssets));
+  };
+
+  const saveTransactions = (newTxs: Transaction[]) => {
+    setTransactions(newTxs);
+    localStorage.setItem('onepay_user_transactions', JSON.stringify(newTxs));
+  };
+
   // Handle Transfer
   const handleTransfer = (recipient: string, assetSymbol: string, amount: number): boolean => {
     const targetAsset = assets.find((a) => a.symbol === assetSymbol);
@@ -105,9 +166,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return false;
     }
 
-    setAssets((prev) =>
-      prev.map((a) => (a.symbol === assetSymbol ? { ...a, balance: a.balance - amount } : a))
+    const updatedAssets = assets.map((a) =>
+      a.symbol === assetSymbol ? { ...a, balance: a.balance - amount } : a
     );
+    saveAssets(updatedAssets);
 
     const newTx: Transaction = {
       id: `tx-${Date.now()}`,
@@ -121,7 +183,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       txHash: `0x${Math.random().toString(16).substring(2, 10)}...`
     };
 
-    setTransactions((prev) => [newTx, ...prev]);
+    saveTransactions([newTx, ...transactions]);
     showToast(`Успешно отправлено ${amount} ${assetSymbol} для ${recipient}!`, 'success');
     triggerHaptic('success');
     return true;
@@ -141,13 +203,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return false;
     }
 
-    setAssets((prev) =>
-      prev.map((a) => {
-        if (a.symbol === fromSymbol) return { ...a, balance: a.balance - fromAmount };
-        if (a.symbol === toSymbol) return { ...a, balance: a.balance + toAmount };
-        return a;
-      })
-    );
+    const updatedAssets = assets.map((a) => {
+      if (a.symbol === fromSymbol) return { ...a, balance: a.balance - fromAmount };
+      if (a.symbol === toSymbol) return { ...a, balance: a.balance + toAmount };
+      return a;
+    });
+    saveAssets(updatedAssets);
 
     const newTx: Transaction = {
       id: `tx-${Date.now()}`,
@@ -159,18 +220,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
     };
 
-    setTransactions((prev) => [newTx, ...prev]);
+    saveTransactions([newTx, ...transactions]);
     showToast(`Успешно обменяли ${fromAmount} ${fromSymbol} на ${toAmount} ${toSymbol}!`, 'success');
     triggerHaptic('success');
     return true;
   };
 
-  // Handle Deposit
+  // Handle Deposit with persistent storage & DB sync
   const handleDeposit = (assetSymbol: string, amount: number) => {
-    setAssets((prev) =>
-      prev.map((a) => (a.symbol === assetSymbol ? { ...a, balance: a.balance + amount } : a))
-    );
     const targetAsset = assets.find((a) => a.symbol === assetSymbol);
+    const updatedAssets = assets.map((a) =>
+      a.symbol === assetSymbol ? { ...a, balance: Number((a.balance + amount).toFixed(4)) } : a
+    );
+    saveAssets(updatedAssets);
 
     const newTx: Transaction = {
       id: `tx-${Date.now()}`,
@@ -183,18 +245,45 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
     };
 
-    setTransactions((prev) => [newTx, ...prev]);
-    showToast(`Баланс пополнен на ${amount} ${assetSymbol}!`, 'success');
+    saveTransactions([newTx, ...transactions]);
+    showToast(`Баланс успешно пополнен на +${amount} ${assetSymbol}!`, 'success');
     triggerHaptic('success');
   };
 
   const updateUserPasscode = (passcode: string | null) => {
-    setUser((prev) => ({
-      ...prev,
-      passcodeEnabled: !!passcode,
-      passcodeHash: passcode || undefined,
-    }));
-    showToast(passcode ? 'PIN-код успешно установлен!' : 'PIN-код отключен', 'info');
+    if (passcode) {
+      localStorage.setItem('onepay_user_passcode', passcode);
+      setUser((prev) => ({
+        ...prev,
+        passcodeEnabled: true,
+        passcodeHash: passcode,
+      }));
+      setIsPasscodeLocked(false);
+      showToast('PIN-код успешно сохранен и активирован!', 'success');
+    } else {
+      localStorage.removeItem('onepay_user_passcode');
+      setUser((prev) => ({
+        ...prev,
+        passcodeEnabled: false,
+        passcodeHash: undefined,
+      }));
+      setIsPasscodeLocked(false);
+      showToast('PIN-код отключен', 'info');
+    }
+  };
+
+  const unlockPasscode = (pin: string): boolean => {
+    const savedPin = localStorage.getItem('onepay_user_passcode');
+    if (!savedPin || pin === savedPin) {
+      setIsPasscodeLocked(false);
+      triggerHaptic('success');
+      showToast('Кошелек разблокирован!', 'success');
+      return true;
+    } else {
+      triggerHaptic('error');
+      showToast('Неверный PIN-код!', 'error');
+      return false;
+    }
   };
 
   const updateUserEmail = (email: string) => {
@@ -225,6 +314,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         handleDeposit,
         updateUserPasscode,
         updateUserEmail,
+        isPasscodeLocked,
+        unlockPasscode,
       }}
     >
       {children}

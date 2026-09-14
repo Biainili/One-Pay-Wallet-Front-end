@@ -57,6 +57,10 @@ interface TelegramWebApp {
   ready(): void;
   expand(): void;
   close(): void;
+  disableVerticalSwipes?(): void;
+  enableClosingConfirmation?(): void;
+  setHeaderColor?(color: string): void;
+  setBackgroundColor?(color: string): void;
   openTelegramLink(url: string): void;
   openLink(url: string): void;
 }
