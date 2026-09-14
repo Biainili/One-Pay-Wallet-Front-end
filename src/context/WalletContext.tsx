@@ -66,9 +66,17 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [user, setUser] = useState<UserProfile>(() => {
     const savedPin = localStorage.getItem('onepay_user_passcode');
     const savedEmail = localStorage.getItem('onepay_user_email');
+    const savedProfile = localStorage.getItem('onepay_user_profile');
+    let baseUser = defaultUserProfile;
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed && typeof parsed === 'object') baseUser = { ...baseUser, ...parsed };
+      } catch (e) {}
+    }
     return {
-      ...defaultUserProfile,
-      email: savedEmail || defaultUserProfile.email,
+      ...baseUser,
+      email: savedEmail || baseUser.email,
       passcodeEnabled: !!savedPin,
       passcodeHash: savedPin || undefined,
     };
@@ -82,7 +90,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [selectedAsset, setSelectedAsset] = useState<CryptoAsset>(assets[0] || initialAssets[0]);
   const [toasts, setToasts] = useState<ToastInfo[]>([]);
 
-  // Synchronize Telegram WebApp user if available & restore saved email/passcode
+  // Synchronize Telegram WebApp user if available & restore saved profile/email/passcode
   useEffect(() => {
     const savedEmail = localStorage.getItem('onepay_user_email');
     const savedPin = localStorage.getItem('onepay_user_passcode');
@@ -97,16 +105,19 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const tgUser = tg.initDataUnsafe?.user;
       if (tgUser) {
-        setUser((prev) => ({
-          ...prev,
+        const avatar = (tgUser as any).photo_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${tgUser.username || tgUser.id}`;
+        const updatedUser: UserProfile = {
           id: tgUser.id,
-          firstName: tgUser.first_name || prev.firstName,
-          username: tgUser.username ? `@${tgUser.username}` : prev.username,
-          avatarUrl: (tgUser as any).photo_url || prev.avatarUrl,
-          email: savedEmail || prev.email,
+          firstName: tgUser.first_name || 'Пользователь',
+          username: tgUser.username ? `@${tgUser.username}` : `@id${tgUser.id}`,
+          avatarUrl: avatar,
+          email: savedEmail || user.email,
+          phoneNumbers: user.phoneNumbers && user.phoneNumbers.length > 0 ? user.phoneNumbers : ['+7 (999) 000-00-00'],
           passcodeEnabled: !!savedPin,
           passcodeHash: savedPin || undefined,
-        }));
+        };
+        setUser(updatedUser);
+        localStorage.setItem('onepay_user_profile', JSON.stringify(updatedUser));
       }
     }
 
