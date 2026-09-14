@@ -28,6 +28,8 @@ interface WalletContextType {
   handleDeposit: (assetSymbol: string, amount: number) => void;
   updateUserPasscode: (passcode: string | null) => void;
   updateUserEmail: (email: string) => void;
+  addPhoneNumber: (phone: string) => void;
+  removePhoneNumber: (phone: string) => void;
   isPasscodeLocked: boolean;
   unlockPasscode: (pin: string) => boolean;
 }
@@ -107,6 +109,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (tgUser) {
         const avatar = (tgUser as any).photo_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${tgUser.username || tgUser.id}`;
         const updatedUser: UserProfile = {
+          ...defaultUserProfile,
           id: tgUser.id,
           firstName: tgUser.first_name || 'Пользователь',
           username: tgUser.username ? `@${tgUser.username}` : `@id${tgUser.id}`,
@@ -303,6 +306,47 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast('E-mail успешно сохранен!', 'success');
   };
 
+  const addPhoneNumber = (phone: string) => {
+    const trimmed = phone.trim();
+    if (!trimmed) return;
+    const currentPhones = user.phoneNumbers || [];
+    if (currentPhones.includes(trimmed)) return;
+    const updatedPhones = [...currentPhones, trimmed];
+    
+    const updatedUser: UserProfile = {
+      ...user,
+      phoneNumbers: updatedPhones,
+      phone: updatedPhones[0] || user.phone,
+    };
+    setUser(updatedUser);
+    localStorage.setItem('onepay_user_profile', JSON.stringify(updatedUser));
+    localStorage.setItem('onepay_user_phones', JSON.stringify(updatedPhones));
+    showToast('Номер телефона добавлен!', 'success');
+    triggerHaptic('success');
+
+    // Sync to PostgreSQL DB via API
+    fetch('/api/user/phone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, phone: trimmed }),
+    }).catch(() => {});
+  };
+
+  const removePhoneNumber = (phone: string) => {
+    const currentPhones = user.phoneNumbers || [];
+    const updatedPhones = currentPhones.filter((p) => p !== phone);
+    const updatedUser: UserProfile = {
+      ...user,
+      phoneNumbers: updatedPhones,
+      phone: updatedPhones[0] || undefined,
+    };
+    setUser(updatedUser);
+    localStorage.setItem('onepay_user_profile', JSON.stringify(updatedUser));
+    localStorage.setItem('onepay_user_phones', JSON.stringify(updatedPhones));
+    showToast('Номер телефона удален', 'info');
+    triggerHaptic('medium');
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -325,6 +369,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         handleDeposit,
         updateUserPasscode,
         updateUserEmail,
+        addPhoneNumber,
+        removePhoneNumber,
         isPasscodeLocked,
         unlockPasscode,
       }}

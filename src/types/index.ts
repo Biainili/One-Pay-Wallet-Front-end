@@ -45,6 +45,7 @@ export interface UserProfile {
   kycLevel: 'Basic' | 'Verified' | 'Pro';
   email?: string;
   phone?: string;
+  phoneNumbers?: string[];
   refLink: string;
   refCount: number;
   totalRefEarningsUSDT: number;

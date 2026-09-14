@@ -7,20 +7,19 @@ interface AccountSettingsViewProps {
 }
 
 export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ onBack }) => {
-  const { user, triggerHaptic, showToast } = useWallet();
-  const [phoneList, setPhoneList] = useState<string[]>(
-    user.phone ? [user.phone] : []
-  );
+  const { user, triggerHaptic, showToast, addPhoneNumber, removePhoneNumber } = useWallet();
   const [showAddPhone, setShowAddPhone] = useState(false);
   const [newPhone, setNewPhone] = useState('');
 
+  const phoneList = user.phoneNumbers && user.phoneNumbers.length > 0 
+    ? user.phoneNumbers 
+    : (user.phone ? [user.phone] : []);
+
   const handleAddPhone = () => {
     if (!newPhone.trim()) return;
-    setPhoneList((prev) => [...prev, newPhone.trim()]);
+    addPhoneNumber(newPhone.trim());
     setNewPhone('');
     setShowAddPhone(false);
-    triggerHaptic('success');
-    showToast('Номер телефона добавлен!', 'success');
   };
 
   const handleDeleteAccount = () => {
@@ -84,19 +83,25 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ onBack
                 Нет добавленных номеров телефонов
               </div>
             ) : (
-              phoneList.map((phone, idx) => (
+              phoneList.map((phoneItem: string, idx: number) => (
                 <div key={idx} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
                       <Phone className="w-5 h-5" />
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-white">{phone}</span>
+                      <span className="text-sm font-medium text-white">{phoneItem}</span>
                       <span className="block text-[11px] text-slate-400">
                         {idx === 0 ? 'Основной' : 'Дополнительный'}
                       </span>
                     </div>
                   </div>
+                  <button
+                    onClick={() => removePhoneNumber(phoneItem)}
+                    className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-slate-800 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))
             )}
