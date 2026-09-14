@@ -115,7 +115,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           username: tgUser.username ? `@${tgUser.username}` : `@id${tgUser.id}`,
           avatarUrl: avatar,
           email: savedEmail || user.email,
-          phoneNumbers: user.phoneNumbers && user.phoneNumbers.length > 0 ? user.phoneNumbers : ['+7 (999) 000-00-00'],
+          phoneNumbers: user.phoneNumbers || [],
           passcodeEnabled: !!savedPin,
           passcodeHash: savedPin || undefined,
         };
