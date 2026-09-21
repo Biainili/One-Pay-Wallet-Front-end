@@ -2,6 +2,28 @@ import { CryptoAsset, Transaction, ReferralUser, UserProfile } from '../types';
 
 export const initialAssets: CryptoAsset[] = [
   {
+    id: 'usd-fiat',
+    name: 'US Dollar',
+    symbol: 'USD',
+    network: 'Fiat USD',
+    balance: 0.00,
+    fiatPrice: 1.00,
+    change24h: 0.00,
+    iconBg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    depositAddress: 'USD_WALLET_ACCOUNT',
+  },
+  {
+    id: 'gram-token',
+    name: 'GRAM',
+    symbol: 'GRAM',
+    network: 'TON Blockchain',
+    balance: 0.00,
+    fiatPrice: 1.4868,
+    change24h: 2.15,
+    iconBg: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    depositAddress: 'EQD_GRAM_TOKEN_HOLDER',
+  },
+  {
     id: 'usdt-ton',
     name: 'Tether USDT',
     symbol: 'USDT',
@@ -35,15 +57,26 @@ export const initialAssets: CryptoAsset[] = [
     depositAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
   },
   {
-    id: 'usdt-trc20',
-    name: 'USDT TRC-20',
-    symbol: 'USDT-TRC20',
-    network: 'TRON Network',
-    balance: 500.00,
-    fiatPrice: 1.00,
+    id: 'eth-native',
+    name: 'Ethereum',
+    symbol: 'ETH',
+    network: 'Ethereum Mainnet',
+    balance: 0.25,
+    fiatPrice: 3450.00,
+    change24h: 1.80,
+    iconBg: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+    depositAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+  },
+  {
+    id: 'rub-fiat',
+    name: 'Russian Ruble',
+    symbol: 'RUB',
+    network: 'Fiat RUB',
+    balance: 5000.00,
+    fiatPrice: 0.0112,
     change24h: 0.00,
-    iconBg: 'bg-red-500/20 text-red-400 border-red-500/30',
-    depositAddress: 'TYDzsYUEpvnYmQk4zGP9sWWcTEd2MDEFg1',
+    iconBg: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    depositAddress: 'RUB_WALLET_ACCOUNT',
   }
 ];
 
