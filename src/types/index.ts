@@ -1,6 +1,6 @@
 export type TabType = 'home' | 'history' | 'swap' | 'referrals' | 'settings';
 
-export type ActiveModal = 'none' | 'deposit' | 'transfer' | 'swap' | 'qr_pay' | 'passcode' | 'services';
+export type ActiveModal = 'none' | 'deposit' | 'transfer' | 'swap' | 'qr_pay' | 'passcode' | 'services' | 'cashback' | 'cashback_levels' | 'virtual_cards';
 
 export interface CryptoAsset {
   id: string;

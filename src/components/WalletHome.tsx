@@ -128,6 +128,58 @@ export const WalletHome: React.FC = () => {
         </div>
       </div>
 
+      {/* 2 Blocks Row: Payment Cards (70%) & Cashback & Points (30%) */}
+      <div className="grid grid-cols-12 gap-3">
+        {/* Payment Cards Block (col-span-7 / ~70%) */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('medium');
+            setActiveModal('virtual_cards');
+          }}
+          className="col-span-7 p-4 rounded-3xl bg-gradient-to-br from-[#13192B] to-[#1A233D] border border-slate-800 hover:border-cyan-500/40 text-left transition-all active:scale-[0.98] shadow-md flex flex-col justify-between h-32 relative overflow-hidden group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-9 h-9 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+              Карты
+            </span>
+          </div>
+
+          <div>
+            <div className="text-sm font-bold text-slate-100 tracking-tight leading-tight">
+              Платёжные карты
+            </div>
+            <div className="text-[11px] text-slate-400 mt-0.5 font-medium">
+              «Антарктик» и World
+            </div>
+          </div>
+        </button>
+
+        {/* Cashback & Points Block (col-span-5 / ~30%) */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic('medium');
+            setActiveModal('cashback');
+          }}
+          className="col-span-5 p-4 rounded-3xl bg-gradient-to-br from-[#13192B] to-[#152338] border border-slate-800 hover:border-emerald-500/40 text-left transition-all active:scale-[0.98] shadow-md flex flex-col justify-between h-32 relative overflow-hidden group"
+        >
+          <div className="text-sm font-bold text-slate-100 leading-tight">
+            Кешбэк<br />и баллы
+          </div>
+
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black shadow-sm group-hover:scale-105 transition-transform">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>1%</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
       {/* Services Grid (Nexus Specific Feature: Merchant Payments, Steam, Cards) */}
       <div>
         <div className="flex items-center justify-between mb-3 px-1">

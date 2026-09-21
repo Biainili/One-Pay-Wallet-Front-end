@@ -13,6 +13,8 @@ import { TransferModal } from './components/TransferModal';
 import { QrPayModal } from './components/QrPayModal';
 import { PasscodeModal } from './components/PasscodeModal';
 import { ServicesModal } from './components/ServicesModal';
+import { CashbackModal } from './components/CashbackModal';
+import { VirtualCardsModal } from './components/VirtualCardsModal';
 import { NotificationToast } from './components/NotificationToast';
 import { EmailOnboardingModal } from './components/EmailOnboardingModal';
 import { GiftFloatingButton } from './components/GiftFloatingButton';
@@ -73,6 +75,8 @@ const AppContent: React.FC = () => {
       <QrPayModal />
       <PasscodeModal />
       <ServicesModal />
+      <CashbackModal />
+      <VirtualCardsModal />
 
       <Navigation />
     </div>
