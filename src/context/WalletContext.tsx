@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TabType, ActiveModal, CryptoAsset, Transaction, ReferralUser, UserProfile } from '../types';
 import { initialAssets, initialTransactions, initialReferrals, defaultUserProfile } from '../services/mockData';
+import { fetchUserProfile, fetchWalletData, addPhoneApi } from '../services/api';
 
 interface ToastInfo {
   id: string;
@@ -129,6 +130,50 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         showToast('🔒 Рекомендуем установить PIN-код для защиты аккаунта', 'info');
       }, 1500);
     }
+  }, []);
+
+  // Load real data from Backend API
+  useEffect(() => {
+    // Load user profile from DB
+    fetchUserProfile()
+      .then(({ user: apiUser }) => {
+        setUser((prev) => ({
+          ...prev,
+          id: Number(apiUser.telegramId) || prev.id,
+          firstName: apiUser.firstName || prev.firstName,
+          username: apiUser.username || prev.username,
+          email: apiUser.email || prev.email,
+        }));
+      })
+      .catch(() => {}); // silently fallback to local state
+
+    // Load wallets & transactions from DB
+    fetchWalletData()
+      .then(({ wallets, transactions: apiTxs }) => {
+        if (wallets && wallets.length > 0) {
+          // Merge DB balances into local asset list (keep icon/meta from mockData)
+          setAssets((prev) =>
+            prev.map((asset) => {
+              const dbWallet = wallets.find((w: any) => w.assetSymbol === asset.symbol);
+              return dbWallet ? { ...asset, balance: dbWallet.balance } : asset;
+            })
+          );
+        }
+        if (apiTxs && apiTxs.length > 0) {
+          const mapped: Transaction[] = apiTxs.map((t: any) => ({
+            id: t.id,
+            type: t.type,
+            assetSymbol: t.assetSymbol,
+            amount: t.amount,
+            fiatAmount: t.fiatAmount,
+            recipientOrSender: t.recipientOrSender,
+            status: t.status,
+            timestamp: t.createdAt?.replace('T', ' ').substring(0, 16) || '',
+          }));
+          setTransactions(mapped);
+        }
+      })
+      .catch(() => {}); // silently fallback to localStorage
   }, []);
 
   const triggerHaptic = (type: 'light' | 'medium' | 'heavy' | 'success' | 'error' = 'light') => {
@@ -324,12 +369,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast('Номер телефона добавлен!', 'success');
     triggerHaptic('success');
 
-    // Sync to PostgreSQL DB via API
-    fetch('/api/user/phone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, phone: trimmed }),
-    }).catch(() => {});
+    // Sync to Backend DB
+    addPhoneApi(user.id, trimmed).catch(() => {});
   };
 
   const removePhoneNumber = (phone: string) => {
